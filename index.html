@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>פאזל ג'ירפה</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      direction: rtl;
+    }
+    #puzzle {
+      width: 300px;
+      height: 300px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 2px;
+    }
+    .tile {
+      width: 100px;
+      height: 100px;
+      background-size: 300px 300px;
+      border: 1px solid #999;
+      cursor: move;
+    }
+    input[type="file"] {
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>פאזל מותאם אישית</h1>
+  <p>בחרי תמונה מהמחשב וגררי את החלקים למקום הנכון</p>
+  <input type="file" id="imageUpload" accept="image/*">
+  <div id="puzzle"></div>
+  <p id="message" style="font-weight: bold; color: green;"></p>
+
+  <script>
+    const puzzle = document.getElementById('puzzle');
+    const message = document.getElementById('message');
+    const imageUpload = document.getElementById('imageUpload');
+
+    let imgURL = '';
+
+    imageUpload.addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          imgURL = event.target.result;
+          buildPuzzle();
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function buildPuzzle() {
+      puzzle.innerHTML = '';
+      const correctOrder = [...Array(9).keys()];
+      const tiles = [...correctOrder].sort(() => Math.random() - 0.5);
+
+      tiles.forEach((pos, index) => {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.draggable = true;
+        tile.style.backgroundImage = `url('${imgURL}')`;
+        tile.style.backgroundPosition = `-${(pos % 3) * 100}px -${Math.floor(pos / 3) * 100}px`;
+        tile.dataset.correct = pos;
+        tile.dataset.index = index;
+        puzzle.appendChild(tile);
+      });
+
+      initDrag();
+    }
+
+    let dragSrcEl;
+
+    function handleDragStart(e) {
+      dragSrcEl = this;
+    }
+
+    function handleDrop(e) {
+      if (dragSrcEl !== this) {
+        const srcIndex = dragSrcEl.dataset.index;
+        const tgtIndex = this.dataset.index;
+
+        const srcNode = dragSrcEl.cloneNode(true);
+        const tgtNode = this.cloneNode(true);
+
+        puzzle.replaceChild(tgtNode, dragSrcEl);
+        puzzle.replaceChild(srcNode, this);
+
+        initDrag();
+        checkWin();
+      }
+    }
+
+    function initDrag() {
+      document.querySelectorAll('.tile').forEach(tile => {
+        tile.addEventListener('dragstart', handleDragStart);
+        tile.addEventListener('dragover', e => e.preventDefault());
+        tile.addEventListener('drop', handleDrop);
+      });
+    }
+
+    function checkWin() {
+      const current = [...puzzle.children].map(tile => tile.style.backgroundPosition);
+      const win = current.every((pos, i) => {
+        const row = Math.floor(i / 3);
+        const col = i % 3;
+        return pos === `-${col * 100}px -${row * 100}px`;
+      });
+      if (win) {
+        message.textContent = 'כל הכבוד! פתרת את הפאזל';
+      } else {
+        message.textContent = '';
+      }
+    }
+  </script>
+</body>
+</html>
